@@ -200,9 +200,6 @@ define l2mesh::vpn (
   $hosts    = "${root}/hosts"
   $conf     = "${root}/tinc.conf"
 
-  $tag      = "tinc_${name}"
-  $tag_conf = "${tag}_connect"
-
   $fqdn = regsubst($::fqdn, '[._-]+', '', 'G')
   $host = "${hosts}/${fqdn}"
 
@@ -280,15 +277,19 @@ define l2mesh::vpn (
 
 
 
-  @@l2mesh::host { $fqdn:
+  @@l2mesh::host { "${name} host ${fqdn}":
+    fqdn       => $fqdn,
+    net        => $name,
     host       => $host,
     ip         => $ip,
     port       => $port,
     tcp_only   => $tcp_only,
     public_key => $public_key,
-    tag_conf   => $tag_conf,
+    require    => File[$hosts],
+    notify     => Exec[$reload],
+    before     => Service[$service],
   }
-  L2mesh::Host <<| fqdn != $fqdn |>> {
+  L2mesh::Host <<| (net == $name or tag_conf == "tinc_${name}_connect") and fqdn != $fqdn |>> {
     conf => $conf,
   }
 
